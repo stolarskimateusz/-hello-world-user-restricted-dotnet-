@@ -1,10 +1,10 @@
 ﻿using System;
-using RestSharp;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;   
 using Microsoft.AspNetCore.WebUtilities;
 using System.Web;
+using System.Net.Http;
 
 namespace HelloWorldUserRestrictedAPI
 {
@@ -37,7 +37,7 @@ namespace HelloWorldUserRestrictedAPI
 
         }
 
-        public void GetAccessToken()
+        public async void GetAccessToken()
         {
             Console.WriteLine("Enter callback url:");
             string CallbackUrl = Console.ReadLine();
@@ -46,21 +46,27 @@ namespace HelloWorldUserRestrictedAPI
             string _state = HttpUtility.ParseQueryString(siteUri.Query).Get("state");
 
             if (this.state==_state) {
-                var client = new RestClient(TokenUri);
-                var request = new RestRequest(Method.POST);
-                request.AddHeader("cache-control", "no-cache");
-                request.AddHeader("content-type", "application/x-www-form-urlencoded");
-                request.AddParameter(
-                    "application/x-www-form-urlencoded",
-                    String.Format(
-                        "grant_type=authorization_code&client_id={0}&client_secret={1}&redirect_uri={2}&code={3}",
-                        client_id, client_secret, RedirectUri, _code
-                    ),
-                    ParameterType.RequestBody
-                );
-                IRestResponse response = client.Execute(request);
-                var json = JsonConvert.DeserializeObject(response.Content);
+
+                HttpClient clienta = new HttpClient();
+                clienta.DefaultRequestHeaders.Add("cache-control", "no-cache");
+                clienta.DefaultRequestHeaders.Add("content-type", "application/x-www-form-urlencoded");
+                var dict = new Dictionary<string, string>()
+                {
+                    {"grant_type", "authorization_code"},
+                    {"client_id", client_id},
+                    {"client_secret", client_secret},
+                    {"redirect_uri", RedirectUri},
+                    {"code", _code}
+                };
+                var req = new HttpRequestMessage(HttpMethod.Post, TokenUri) { Content = new FormUrlEncodedContent(dict) };
+                var res = await clienta.SendAsync(req);
+                res.EnsureSuccessStatusCode();
+
+                var responseString = res.Content.ReadAsStringAsync().Result;
+
+                var json = JsonConvert.DeserializeObject(responseString);
                 Console.WriteLine(json);
+                Console.WriteLine(responseString);
             }
             else
             {

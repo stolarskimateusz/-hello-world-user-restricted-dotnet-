@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Web;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace HelloWorldUserRestrictedAPI
 {
@@ -37,7 +38,7 @@ namespace HelloWorldUserRestrictedAPI
 
         }
 
-        public async void GetAccessToken()
+        public async Task GetAccessToken()
         {
             Console.WriteLine("Enter callback url:");
             string CallbackUrl = Console.ReadLine();
@@ -47,9 +48,9 @@ namespace HelloWorldUserRestrictedAPI
 
             if (this.state==_state) {
 
-                HttpClient clienta = new HttpClient();
-                clienta.DefaultRequestHeaders.Add("cache-control", "no-cache");
-                clienta.DefaultRequestHeaders.Add("content-type", "application/x-www-form-urlencoded");
+                HttpClient client = new HttpClient();
+                client.DefaultRequestHeaders.Add("cache-control", "no-cache");
+
                 var dict = new Dictionary<string, string>()
                 {
                     {"grant_type", "authorization_code"},
@@ -58,15 +59,15 @@ namespace HelloWorldUserRestrictedAPI
                     {"redirect_uri", RedirectUri},
                     {"code", _code}
                 };
-                var req = new HttpRequestMessage(HttpMethod.Post, TokenUri) { Content = new FormUrlEncodedContent(dict) };
-                var res = await clienta.SendAsync(req);
-                res.EnsureSuccessStatusCode();
+                FormUrlEncodedContent postData = new FormUrlEncodedContent(dict);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, TokenUri);
+                request.Content = postData;
+                var response = await client.SendAsync(request);
 
-                var responseString = res.Content.ReadAsStringAsync().Result;
+                string responseString = await response.Content.ReadAsStringAsync();
 
                 var json = JsonConvert.DeserializeObject(responseString);
                 Console.WriteLine(json);
-                Console.WriteLine(responseString);
             }
             else
             {
@@ -77,11 +78,11 @@ namespace HelloWorldUserRestrictedAPI
 
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             OAuth OAuth = new OAuth();
             OAuth.GetCode();
-            OAuth.GetAccessToken();
+            await OAuth.GetAccessToken();
         }
     }
 }
